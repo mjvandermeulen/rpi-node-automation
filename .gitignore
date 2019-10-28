@@ -1,0 +1,27 @@
+# mjvandermeulen
+# sources:
+#   - Programming/Automation
+#   - https://gist.github.com/ericelliott/a9c8e7810d94fdd90993e30552674244
+#       (very short)
+# node
+node_modules
+build
+npm-debug.log
+
+.env
+
+# Project specific
+personal_settings.py
+
+# When remotely working from Mac
+.AppleDouble
+.DS_Store
+
+# Editors
+.vscode
+# no * needed, because the directory is literally named .vscode
+*.code-workspace
+
+# mjvandermeulen
+# Libre Office on Raspberry Pi
+*.csv#
