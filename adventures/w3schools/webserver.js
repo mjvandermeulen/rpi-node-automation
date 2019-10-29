@@ -3,7 +3,8 @@ var fs = require('fs')
 var io = require('socket.io')(http) // require socket.io module
 var Gpio = require('onoff').Gpio
 var LED = new Gpio(6, 'out')
-var pushButton = new Gpio(19, 'in', 'both') // both press and release are handled
+// 'rising': only presses are handled
+var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 })
 
 http.listen(8080)
 
@@ -19,25 +20,41 @@ function handler(req, res) {
   })
 }
 
-io.sockets.on('connection', function(socket) {
-  var lightvalue = 0
-  pushButton.watch(function(err, value) {
-    if (err) {
-      console.error(`There was an error ${err}`)
-      return
-    }
-    lightvalue = value
-    socket.emit('light', lightvalue)
-  })
+pushButton.watch(function(err, button_value) {
+  var next_light = 0
+  if (err) {
+    console.error(`There was an error ${err}`)
+    return
+  }
+  if (button_value === 1) {
+    next_light = LED.readSync() ^ 1 // the caret is the XOR (Exclusive OR operator)
+    console.log(`Button Pressed. next_light: ${next_light}`)
+    LED.writeSync(next_light)
+    // emit to all sockets
+    io.emit('light', next_light)
+  } else {
+    // NOTE: pushButton set to 'rising'
+    console.log('WEIRD: button release is being processed')
+  }
+})
 
-  socket.on('light', function(data) {
-    // get light switch status from client
-    lightvalue = data
-    if (lightvalue != LED.readSync()) {
-      LED.writeSync(lightvalue)
+io.sockets.on('connection', function(socket) {
+  socket.on('light', function(lightvalue) {
+    // get lightswitch status (lightvalue) from client
+    var currentvalue = LED.readSync()
+    console.log(
+      `Server socket.on | currentvalue: ${currentvalue} lightvalue: ${lightvalue}`
+    )
+    if (lightvalue === -1) {
+      // light sync requested
+      // only emit to current socket.
+      socket.emit('light', currentvalue)
     } else {
-      //   LED.writeSync(lightvalue) // uncomment these lines for a fun test
-      //   console.log(`redundant switch write Sync ${lightvalue}`)
+      if (lightvalue != currentvalue) {
+        LED.writeSync(lightvalue)
+      }
+      // emit to all sockets, except the current one
+      socket.broadcast.emit('light', lightvalue)
     }
   })
 })
