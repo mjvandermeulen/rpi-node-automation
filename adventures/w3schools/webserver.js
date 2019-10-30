@@ -6,7 +6,7 @@ var LED = new Gpio(6, 'out')
 // 'rising': only presses are handled
 var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 })
 
-http.listen(8080)
+http.listen(8047)
 
 function handler(req, res) {
   fs.readFile(__dirname + '/public/index.html', function(err, data) {
