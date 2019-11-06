@@ -15,7 +15,7 @@ var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 });
 // var io = socket(http)
 // import { Gpio } from 'onoff'
 var python_shell_1 = require("python-shell");
-http.listen(8047);
+http.listen(8091);
 function handler(req, res) {
     fs.readFile(__dirname + '/public/index.html', function (err, data) {
         if (err) {

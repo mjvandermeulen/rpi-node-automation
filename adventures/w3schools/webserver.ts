@@ -16,7 +16,7 @@ var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 })
 
 import { PythonShell } from 'python-shell'
 
-http.listen(8047)
+http.listen(8091)
 
 function handler(req, res) {
   fs.readFile(__dirname + '/public/index.html', function(err, data) {
