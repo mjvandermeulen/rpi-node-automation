@@ -1,6 +1,6 @@
-import { PythonShell } from 'python-shell'
+import { PythonShell, Options } from 'python-shell'
 
-let options = {
+let options: Options = {
   mode: 'text',
   pythonPath: '/usr/bin/python3',
   scriptPath: '/home/pi/Programming/Automation/executables',
@@ -9,5 +9,5 @@ let options = {
 
 PythonShell.run('rfoutlets_switch_group.py', options, function(err, results) {
   if (err) throw err
-  console.log(`results: ${results}`)
+  // console.log(`results: ${results}`)
 })

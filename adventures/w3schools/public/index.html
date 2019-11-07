@@ -46,20 +46,42 @@
     <div>
       <h1>Remote Outlets</h1>
       <p>
-        <button class="btnOnOff" id="lightOn">
+        <button class="btnOnOff" id="livingRoomOn">
           on
         </button>
-        <button class="btnOnOff" id="lightOff">
+        <button class="btnOnOff" id="livingRoomOff">
+          off
+        </button>
+        <span class="btnTitle">
+          living room
+        </span>
+      </p>
+      <p>
+        <button class="btnOnOff" id="officelightOn">
+          on
+        </button>
+        <button class="btnOnOff" id="officelightOff">
           off
         </button>
         <span class="btnTitle">
           office
         </span>
       </p>
+      <p>
+        <button class="btnOnOff" id="fanOn">
+          on
+        </button>
+        <button class="btnOnOff" id="fanOff">
+          off
+        </button>
+        <span class="btnTitle">
+          fan
+        </span>
+      </p>
     </div>
     <div id="counters">
       <p>
-        Incomming Socket Data count
+        Incoming Socket Data count
         <span id="socCountIn">
           0
         </span>
@@ -81,35 +103,49 @@
       }
 
       var socket = io() // load socket.io-client and connect to the host that serves the page
-      var onButton = document.getElementById('lightOn')
-      var offButton = document.getElementById('lightOff')
+
+      function switchButton(data) {
+        var onElement = document.getElementById(data.group + 'On')
+        var offElement = document.getElementById(data.group + 'Off')
+        if (data.value == 1) {
+          onElement.classList.add('btnOnOffActive')
+          offElement.classList.remove('btnOnOffActive')
+        } else {
+          onElement.classList.remove('btnOnOffActive')
+          offElement.classList.add('btnOnOffActive')
+        }
+      }
+
+      function addBtnEvent(group) {
+        var onElement = document.getElementById(group + 'On')
+        var offElement = document.getElementById(group + 'Off')
+
+        onElement.addEventListener('click', function() {
+          onElement.classList.add('btnOnOffActive')
+          offElement.classList.remove('btnOnOffActive')
+          socket.emit('light', { group: group, value: 1 })
+          counterUp('socCountOut')
+        })
+
+        offElement.addEventListener('click', function() {
+          onElement.classList.remove('btnOnOffActive')
+          offElement.classList.add('btnOnOffActive')
+          socket.emit('light', { group: group, value: 0 })
+          counterUp('socCountOut')
+        })
+      }
 
       window.addEventListener('load', function() {
         // old "load" event, even all images will have loaded
         // NOTE: you can click the on or off buttons even if they are "on"
-        onButton.addEventListener('click', function() {
-          onButton.classList.add('btnOnOffActive')
-          offButton.classList.remove('btnOnOffActive')
-          socket.emit('light', Number(1))
-          counterUp('socCountOut')
-        })
-        offButton.addEventListener('click', function() {
-          onButton.classList.remove('btnOnOffActive')
-          offButton.classList.add('btnOnOffActive')
-          socket.emit('light', Number(0))
-          counterUp('socCountOut')
-        })
-        socket.emit('light', -1) // request the current light status.
+        addBtnEvent('officelight')
+        socket.emit('light', { group: 'officelight', value: -1 }) // request the current light status.
         counterUp('socCountOut')
       })
+
       socket.on('light', function(data) {
-        if (data == 1) {
-          onButton.classList.add('btnOnOffActive')
-          offButton.classList.remove('btnOnOffActive')
-        } else {
-          onButton.classList.remove('btnOnOffActive')
-          offButton.classList.add('btnOnOffActive')
-        }
+        switchButton(data)
+        // console.log(data)
         counterUp('socCountIn')
       })
     </script>
