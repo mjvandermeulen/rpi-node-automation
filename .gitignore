@@ -11,7 +11,8 @@ npm-debug.log
 .env
 
 # Project specific
-personal_settings.py
+adventures/w3schools/Outlets.js
+adventures/w3schools/webserver.js
 
 # When remotely working from Mac
 .AppleDouble

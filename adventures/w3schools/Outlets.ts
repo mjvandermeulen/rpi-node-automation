@@ -1,3 +1,5 @@
+import * as socketio from 'socket.io'
+
 import { PythonShell, Options } from 'python-shell'
 
 interface SocketData {
@@ -6,31 +8,37 @@ interface SocketData {
 }
 
 export class Outlets {
+  private io
+  public socketName: string
+
   private onOutlets
-  constructor(io, socketName) {
+  constructor(http, socketName) {
+    this.io = socketio(http) // require socket.io module
+    this.socketName = socketName
     this.onOutlets = new Set([])
-    io.sockets.on('connection', socket => {
-      socket.on(socketName, (socketData: SocketData) => {
+    this.io.sockets.on('connection', socket => {
+      console.log(`this.io.sockets.on .....`)
+      socket.on(this.socketName, (socketData: SocketData) => {
         let currentValue = this.onOutlets.has(socketData.group) ? 1 : 0
+        console.log(`Server socket.on`)
+        console.log(`  currentValue: ${currentValue}`)
+        console.log(`  socketData.group: ${socketData.group}`)
+        console.log(`  socketData.value: ${socketData.value}`)
 
         const returnData: SocketData = {
           group: socketData.group,
           value: currentValue,
         }
-        console.log(`Server socket.on`)
-        console.log(`  currentValue: ${currentValue}`)
-        console.log(`  socketData.group: ${socketData.group}`)
-        console.log(`  socketData.value: ${socketData.value}`)
         if (socketData.value === -1) {
           // light sync requested
           // only emit to current socket.
           returnData.value = currentValue
-          socket.emit(socketName, returnData)
+          socket.emit(this.socketName, returnData)
         } else {
           // always send light signal, even if server thinks the modes match
           this.switch(socketData.group, socketData.value === 1)
           // emit to all sockets, except the current one
-          socket.broadcast.emit(socketName, socketData)
+          socket.broadcast.emit(this.socketName, socketData)
         }
       })
     })
@@ -61,5 +69,31 @@ export class Outlets {
       console.log(`  group: ${group}`)
       console.log()
     })
+  }
+
+  public groupOn(group): boolean {
+    return this.onOutlets.has(group)
+  }
+
+  // public toggle(group: string): boolean {
+  //   let nextMode: boolean = !this.groupOn(group)
+  //   this.switch(group, nextMode)
+  //   return nextMode
+  // }
+
+  public emit(group: string, mode: boolean): void {
+    const returnData: SocketData = {
+      group: group,
+      value: mode ? 1 : 0,
+    }
+    // console.log(`emit\n  returnData: ${returnData.group}`)
+    this.io.emit(this.socketName, returnData)
+  }
+
+  public toggle(group: string): boolean {
+    let nextMode: boolean = !this.groupOn(group)
+    this.emit(group, nextMode)
+    this.switch(group, nextMode)
+    return nextMode
   }
 }

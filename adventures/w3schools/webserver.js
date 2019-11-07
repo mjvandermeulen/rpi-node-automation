@@ -2,8 +2,6 @@
 exports.__esModule = true;
 var httpModule = require("http");
 var http = httpModule.createServer(handler);
-var socketio = require("socket.io");
-var io = socketio(http); // require socket.io module
 var fs = require("fs");
 var onoff_1 = require("onoff");
 var LED = new onoff_1.Gpio(6, 'out');
@@ -27,24 +25,23 @@ function handler(req, res) {
         return res.end();
     });
 }
+var outlets = new Outlets_1.Outlets(http, 'light');
 pushButton.watch(function (err, button_value) {
-    // var nextLight = 0
-    // if (err) {
-    //   console.error(`There was an error ${err}`)
-    //   return
-    // }
-    // if (button_value === 1) {
-    //   nextLight = LED.readSync() ^ 1 // the caret is the XOR (Exclusive OR operator)
-    //   console.log(`Button Pressed. nextLight: ${nextLight}`)
-    //   // emit to all sockets
-    //   io.emit('light', nextLight)
-    //   switchLight(nextLight)
-    // } else {
-    //   // NOTE: pushButton set to 'rising'
-    //   console.log('WARNING: button release should not be processed')
-    // }
+    var mode;
+    if (err) {
+        console.error("There was an error " + err);
+        return;
+    }
+    if (button_value === 1) {
+        mode = outlets.toggle('officelight');
+        LED.writeSync(mode ? 1 : 0);
+        console.log("Button Pressed. that's it");
+    }
+    else {
+        // NOTE: pushButton set to 'rising'
+        console.log('WARNING: button release should not be processed');
+    }
 });
-var outlets = new Outlets_1.Outlets(io, 'light');
 process.on('SIGINT', function () {
     LED.writeSync(0);
     LED.unexport();
