@@ -1,12 +1,14 @@
 "use strict";
 exports.__esModule = true;
-var http = require('http').createServer(handler);
-var io = require('socket.io')(http); // require socket.io module
-var fs = require('fs');
-var Gpio = require('onoff').Gpio; // move push button out of this file
-var LED = new Gpio(6, 'out');
+var httpModule = require("http");
+var http = httpModule.createServer(handler);
+var socketio = require("socket.io");
+var io = socketio(http); // require socket.io module
+var fs = require("fs");
+var onoff_1 = require("onoff");
+var LED = new onoff_1.Gpio(6, 'out');
 // 'rising': only presses are handled
-var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 });
+var pushButton = new onoff_1.Gpio(19, 'in', 'rising', { debounceTimeout: 10 });
 var Outlets_1 = require("./Outlets");
 var modes = {
     livingroom: false,

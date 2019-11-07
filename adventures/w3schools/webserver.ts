@@ -1,12 +1,13 @@
-var http = require('http').createServer(handler)
-const io = require('socket.io')(http) // require socket.io module
+import * as httpModule from 'http'
+const http = httpModule.createServer(handler)
+import * as socketio from 'socket.io'
+const io = socketio(http) // require socket.io module
+import * as fs from 'fs'
 
-var fs = require('fs')
-
-var Gpio = require('onoff').Gpio // move push button out of this file
+import { Gpio } from 'onoff'
 const LED = new Gpio(6, 'out')
 // 'rising': only presses are handled
-var pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 })
+const pushButton = new Gpio(19, 'in', 'rising', { debounceTimeout: 10 })
 
 import { Outlets } from './Outlets'
 
