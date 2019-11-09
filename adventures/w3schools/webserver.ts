@@ -41,6 +41,10 @@ function handler(req, res) {
 
 let outlets = new Outlets(http, 'light')
 
+outlets.watch('officelight', test => {
+  LED.writeSync(outlets.groupOn('officelight') ? 1 : 0)
+})
+
 pushButton.watch(function(err, button_value) {
   let mode: boolean
   if (err) {
@@ -49,8 +53,6 @@ pushButton.watch(function(err, button_value) {
   }
   if (button_value === 1) {
     mode = outlets.toggle('officelight')
-    LED.writeSync(mode ? 1 : 0)
-    console.log(`Button Pressed. that's it`)
   } else {
     // NOTE: pushButton set to 'rising'
     console.log('WARNING: button release should not be processed')

@@ -38,7 +38,7 @@
       }
 
       #counters {
-        visibility: visible;
+        visibility: hidden;
       }
     </style>
   </head>
@@ -46,10 +46,10 @@
     <div>
       <h1>Remote Outlets</h1>
       <p>
-        <button class="btnOnOff" id="livingRoomOn">
+        <button class="btnOnOff" id="livingroomOn">
           on
         </button>
-        <button class="btnOnOff" id="livingRoomOff">
+        <button class="btnOnOff" id="livingroomOff">
           off
         </button>
         <span class="btnTitle">
@@ -68,14 +68,14 @@
         </span>
       </p>
       <p>
-        <button class="btnOnOff" id="fanOn">
+        <button class="btnOnOff" id="filterOn">
           on
         </button>
-        <button class="btnOnOff" id="fanOff">
+        <button class="btnOnOff" id="filterOff">
           off
         </button>
         <span class="btnTitle">
-          fan
+          filter
         </span>
       </p>
     </div>
@@ -133,19 +133,21 @@
           socket.emit('light', { group: group, value: 0 })
           counterUp('socCountOut')
         })
+        socket.emit('light', { group: group, value: -1 }) // request the current light status.
       }
 
       window.addEventListener('load', function() {
         // old "load" event, even all images will have loaded
         // NOTE: you can click the on or off buttons even if they are "on"
         addBtnEvent('officelight')
-        socket.emit('light', { group: 'officelight', value: -1 }) // request the current light status.
+        addBtnEvent('livingroom')
+        addBtnEvent('filter')
         counterUp('socCountOut')
       })
 
       socket.on('light', function(data) {
         switchButton(data)
-        console.log(data)
+        // console.log(data)
         counterUp('socCountIn')
       })
     </script>
