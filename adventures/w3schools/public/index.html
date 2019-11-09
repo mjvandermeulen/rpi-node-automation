@@ -46,14 +46,21 @@
     <div>
       <h1>Remote Outlets</h1>
       <p>
+        <span class="btnTitle">
+          living room
+        </span>
+      </p>
+      <p>
         <button class="btnOnOff" id="livingroomOn">
           on
         </button>
         <button class="btnOnOff" id="livingroomOff">
           off
         </button>
+      </p>
+      <p>
         <span class="btnTitle">
-          living room
+          office
         </span>
       </p>
       <p>
@@ -63,8 +70,14 @@
         <button class="btnOnOff" id="officelightOff">
           off
         </button>
+        <button class="timerBtn" id="officeplus">
+          <!-- next names: officeplusplus ...minus ...minusminus -->
+          + 5
+        </button>
+      </p>
+      <p>
         <span class="btnTitle">
-          office
+          filter
         </span>
       </p>
       <p>
@@ -74,9 +87,6 @@
         <button class="btnOnOff" id="filterOff">
           off
         </button>
-        <span class="btnTitle">
-          filter
-        </span>
       </p>
     </div>
     <div id="counters">
@@ -96,6 +106,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
     <!-- include socket.io client side script -->
     <script>
+      var timer = {
+        livingroom: 0,
+        officelight: 0,
+        filter: 0,
+      }
+
       function counterUp(spanId) {
         inCounter = document.getElementById(spanId)
         c = parseInt(inCounter.innerHTML) + 1
