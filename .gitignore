@@ -10,9 +10,11 @@ npm-debug.log
 
 .env
 
-# Project specific
+# Typescript compiler output:
 adventures/w3schools/Outlets.js
 adventures/w3schools/webserver.js
+outlets-web-remote/Outlets.js
+outlets-web-remote/webserver.js
 
 # When remotely working from Mac
 .AppleDouble
