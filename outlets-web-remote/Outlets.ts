@@ -7,7 +7,9 @@ import { PythonShell, Options } from 'python-shell'
 
 interface SocketData {
   group: string
-  value: number
+  sync: boolean
+  mode: boolean
+  timer: number
 }
 
 export class Outlets {
@@ -21,25 +23,29 @@ export class Outlets {
     this.onOutlets = new Set([])
     this.io.sockets.on('connection', socket => {
       socket.on(this.socketName, (socketData: SocketData) => {
-        let currentValue = this.onOutlets.has(socketData.group) ? 1 : 0
         console.log(`Server socket.on`)
-        console.log(`  currentValue: ${currentValue}`)
         console.log(`  socketData.group: ${socketData.group}`)
-        console.log(`  socketData.value: ${socketData.value}`)
-
-        const returnData: SocketData = {
-          group: socketData.group,
-          value: currentValue,
-        }
-        if (socketData.value === -1) {
+        console.log(`  socketData.sync: ${socketData.sync}`)
+        console.log(`  socketData.mode: ${socketData.mode}`)
+        console.log(`  socketData.timer: ${socketData.timer}`)
+        if (socketData.sync) {
           // light sync requested
+          const returnData: SocketData = {
+            group: socketData.group,
+            sync: false,
+            mode: false,
+            timer: -1,
+          }
+          returnData.mode = this.onOutlets.has(socketData.group)
           // only emit to current socket.
-          returnData.value = currentValue
           socket.emit(this.socketName, returnData)
+        } else if (socketData.timer >= 0) {
+          socket.broadcast.emit(this.socketName, socketData)
+          // do something with set timer TODO *****
         } else {
           // always send light signal, even if server thinks the modes match
-          this.switch(socketData.group, socketData.value === 1)
-          // emit to all sockets, except the current one
+          this.switch(socketData.group, socketData.mode)
+          // emit to all OTHER sockets.
           socket.broadcast.emit(this.socketName, socketData)
         }
       })
@@ -65,12 +71,12 @@ export class Outlets {
       results
     ) {
       if (err) throw err
-      console.log()
-      console.log(`PythonShell:`)
-      console.log(`  results: ${results}`)
-      console.log(`  modeString: ${modeString}`)
-      console.log(`  group: ${group}`)
-      console.log()
+      // console.log()
+      // console.log(`PythonShell:`)
+      // console.log(`  results: ${results}`)
+      // console.log(`  modeString: ${modeString}`)
+      // console.log(`  group: ${group}`)
+      // console.log()
     })
   }
 
@@ -78,16 +84,12 @@ export class Outlets {
     return this.onOutlets.has(group)
   }
 
-  // public toggle(group: string): boolean {
-  //   let nextMode: boolean = !this.groupOn(group)
-  //   this.switch(group, nextMode)
-  //   return nextMode
-  // }
-
   public emit(group: string, mode: boolean): void {
     const returnData: SocketData = {
-      group: group,
-      value: mode ? 1 : 0,
+      group,
+      sync: false,
+      mode,
+      timer: -1,
     }
     // console.log(`emit\n  returnData: ${returnData.group}`)
     this.io.emit(this.socketName, returnData)

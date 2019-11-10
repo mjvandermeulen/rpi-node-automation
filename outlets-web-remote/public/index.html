@@ -38,7 +38,7 @@
       }
 
       #counters {
-        visibility: hidden;
+        visibility: visible;
       }
     </style>
   </head>
@@ -70,9 +70,12 @@
         <button class="btnOnOff" id="officelightOff">
           off
         </button>
-        <button class="timerBtn" id="officeplus">
+        <span class="timer" id="officelightTimer">
+          -:--:--
+        </span>
+        <button class="timerBtn" id="officelightplus">
           <!-- next names: officeplusplus ...minus ...minusminus -->
-          + 5
+          +
         </button>
       </p>
       <p>
@@ -107,12 +110,20 @@
     <!-- include socket.io client side script -->
     <script>
       var timer = {
+        // milliseconds since epoch when timer should go off
+        // 0 if not set
         livingroom: 0,
         officelight: 0,
         filter: 0,
       }
 
-      function counterUp(spanId) {
+      // milliseconds
+      const plus = 10 * 1000
+      const plusplus = 30 * 60 * 1000
+      const minus = -plus
+      const minusminus = -plusplus
+
+      function socketInCounterUp(spanId) {
         inCounter = document.getElementById(spanId)
         c = parseInt(inCounter.innerHTML) + 1
         inCounter.innerHTML = c.toString()
@@ -123,7 +134,7 @@
       function switchButton(data) {
         var onElement = document.getElementById(data.group + 'On')
         var offElement = document.getElementById(data.group + 'Off')
-        if (data.value == 1) {
+        if (data.mode) {
           onElement.classList.add('btnOnOffActive')
           offElement.classList.remove('btnOnOffActive')
         } else {
@@ -139,17 +150,102 @@
         onElement.addEventListener('click', function() {
           onElement.classList.add('btnOnOffActive')
           offElement.classList.remove('btnOnOffActive')
-          socket.emit('light', { group: group, value: 1 })
-          counterUp('socCountOut')
+          socket.emit('light', {
+            group: group,
+            mode: true,
+            sync: false,
+            timer: -1,
+          })
+          socketInCounterUp('socCountOut')
         })
 
         offElement.addEventListener('click', function() {
           onElement.classList.remove('btnOnOffActive')
           offElement.classList.add('btnOnOffActive')
-          socket.emit('light', { group: group, value: 0 })
-          counterUp('socCountOut')
+          socket.emit('light', {
+            group: group,
+            mode: false,
+            sync: false,
+            timer: -1,
+          })
+          socketInCounterUp('socCountOut')
         })
-        socket.emit('light', { group: group, value: -1 }) // request the current light status.
+        socket.emit('light', {
+          group: group,
+          mode: false,
+          sync: true, // request current value, to sync with other sockets
+          timer: -1,
+        })
+      }
+
+      function timeRemainingReadable(milliseconds) {
+        function two(number) {
+          if (number < 10) {
+            return '0' + number.toString()
+          } else {
+            return number.toString()
+          }
+        }
+        // TODO UPDATE: !!!secondsToHoursMinutesSeconds(3723) => "01:02:03"
+        var milliSecondsLeft = milliseconds - Date.now()
+        if (milliSecondsLeft < 1000) {
+          return '-:--:--'
+        }
+        var hours = Math.floor(milliSecondsLeft / (60 * 60 * 1000))
+        milliSecondsLeft = milliSecondsLeft % (60 * 60 * 1000)
+        var minutes = Math.floor(milliSecondsLeft / (60 * 1000))
+        milliSecondsLeft %= 60 * 1000
+        secondsLeft = Math.floor(milliSecondsLeft / 1000)
+        return `${two(hours)}:${two(minutes)}:${two(secondsLeft)}`
+      }
+
+      function refreshTimerDisplay(group) {
+        if (timer[group] - Date.now() < 0) {
+          // timer in the past
+          timer[group] = 0
+        }
+        document.getElementById(
+          group + 'Timer'
+        ).innerHTML = timeRemainingReadable(timer[group])
+      }
+
+      function changeTimer(group, milliseconds) {
+        if (timer[group] == 0) {
+          // timer not set, assume prev timer set for Date.now()
+          timer[group] = Date.now()
+        }
+        timer[group] += milliseconds
+        if (timer[group] - Date.now() < 0) {
+          // timer changed to time in past
+          timer[group] = 0 // reset timer
+        }
+      }
+
+      function broadcastTimer(group) {
+        socket.emit('light', {
+          group: group, //TODO: try group
+          sync: false,
+          mode: false,
+          timer: timer[group],
+        })
+      }
+
+      function addTimerEvent(group) {
+        var plusElement = document.getElementById(group + 'plus')
+        plusElement.addEventListener('click', function() {
+          changeTimer(group, plus)
+          refreshTimerDisplay(group)
+          broadcastTimer(group)
+        })
+      }
+
+      function runTimer(group) {
+        var timerId = setInterval(() => {
+          if (timer[group] > 0) {
+            refreshTimerDisplay(group)
+          }
+        }, 1000)
+        return timerId
       }
 
       window.addEventListener('load', function() {
@@ -158,13 +254,21 @@
         addBtnEvent('officelight')
         addBtnEvent('livingroom')
         addBtnEvent('filter')
-        counterUp('socCountOut')
+        addTimerEvent('officelight')
+        var timerId = runTimer('officelight')
+        // clearInterval(timerId) // EXAMPLE: stop the timer
+        socketInCounterUp('socCountOut')
       })
 
-      socket.on('light', function(data) {
-        switchButton(data)
+      socket.on('light', function(socketData) {
+        socketInCounterUp('socCountIn')
+        if (socketData.timer >= 0) {
+          timer[socketData.group] = socketData.timer
+          refreshTimerDisplay(socketData.group)
+        } else {
+          switchButton(socketData)
+        }
         // console.log(data)
-        counterUp('socCountIn')
       })
     </script>
   </body>
