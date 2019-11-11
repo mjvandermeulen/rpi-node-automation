@@ -52,7 +52,7 @@ pushButton.watch(function(err, button_value) {
     return
   }
   if (button_value === 1) {
-    mode = outlets.toggle('officelight')
+    mode = outlets.toggleRequest('officelight')
   } else {
     // NOTE: pushButton set to 'rising'
     console.log('WARNING: button release should not be processed')

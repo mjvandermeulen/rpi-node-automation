@@ -11,8 +11,10 @@
         font-size: 1.5em;
         font-weight: bold;
       }
-      .btnOnOff {
-        font-size: 0.8 em;
+      .onOffBtn,
+      .timerBtn,
+      .cancelBtn {
+        font-size: 0.8em;
         background-color: white;
         color: black;
         border: 2px solid #e7e7e7;
@@ -21,12 +23,21 @@
         text-align: center;
         text-decoration: none;
         display: inline-block;
-        font-size: 16px;
         margin: 4px 2px;
         cursor: pointer;
         text-transform: uppercase;
       }
-      .btnOnOff:focus {
+      .timerBtn {
+        padding: 15px 15px;
+        font-size: 1em;
+      }
+
+      .timer {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1em;
+        font-weight: bold;
+      }
+      .onOffBtn:focus {
         outline: 0 !important;
         background-color: #f2f2f2;
       }
@@ -51,11 +62,25 @@
         </span>
       </p>
       <p>
-        <button class="btnOnOff" id="livingroomOn">
+        <button class="onOffBtn" id="livingroomOn">
           on
         </button>
-        <button class="btnOnOff" id="livingroomOff">
+        <button class="onOffBtn" id="livingroomOff">
           off
+        </button>
+      </p>
+      <p>
+        <button class="timerBtn" id="livingroomplus">
+          +
+        </button>
+        <span class="timer" id="livingroomTimer">
+          --:--:--
+        </span>
+        <button class="timerBtn" id="livingroomminus">
+          -
+        </button>
+        <button class="cancelBtn" id="livingroomCancel">
+          cancel
         </button>
       </p>
       <p>
@@ -64,18 +89,25 @@
         </span>
       </p>
       <p>
-        <button class="btnOnOff" id="officelightOn">
+        <button class="onOffBtn" id="officelightOn">
           on
         </button>
-        <button class="btnOnOff" id="officelightOff">
+        <button class="onOffBtn" id="officelightOff">
           off
         </button>
-        <span class="timer" id="officelightTimer">
-          -:--:--
-        </span>
+      </p>
+      <p>
         <button class="timerBtn" id="officelightplus">
-          <!-- next names: officeplusplus ...minus ...minusminus -->
           +
+        </button>
+        <span class="timer" id="officelightTimer">
+          --:--:--
+        </span>
+        <button class="timerBtn" id="officelightminus">
+          -
+        </button>
+        <button class="cancelBtn" id="officelightCancel">
+          cancel
         </button>
       </p>
       <p>
@@ -84,10 +116,10 @@
         </span>
       </p>
       <p>
-        <button class="btnOnOff" id="filterOn">
+        <button class="onOffBtn" id="filterOn">
           on
         </button>
-        <button class="btnOnOff" id="filterOff">
+        <button class="onOffBtn" id="filterOff">
           off
         </button>
       </p>
@@ -117,11 +149,13 @@
         filter: 0,
       }
 
-      // milliseconds
-      const plus = 10 * 1000
-      const plusplus = 30 * 60 * 1000
-      const minus = -plus
-      const minusminus = -plusplus
+      // all times in milliseconds
+      const timeAdjustments = {
+        plus: 5 * 1000,
+        plusplus: 30 * 60 * 1000,
+      }
+      timeAdjustments.minus = -timeAdjustments.plus
+      timeAdjustments.minusminus = -timeAdjustments.plusplus
 
       function socketInCounterUp(spanId) {
         inCounter = document.getElementById(spanId)
@@ -132,6 +166,7 @@
       var socket = io() // load socket.io-client and connect to the host that serves the page
 
       function switchButton(data) {
+        // change from data to group and mode TODO ***
         var onElement = document.getElementById(data.group + 'On')
         var offElement = document.getElementById(data.group + 'Off')
         if (data.mode) {
@@ -179,6 +214,8 @@
       }
 
       function timeRemainingReadable(milliseconds) {
+        // timers in the past are displayed as zeros
+        // so a reset timer (= 0) is displayed as zeros as well
         function two(number) {
           if (number < 10) {
             return '0' + number.toString()
@@ -186,10 +223,9 @@
             return number.toString()
           }
         }
-        // TODO UPDATE: !!!secondsToHoursMinutesSeconds(3723) => "01:02:03"
         var milliSecondsLeft = milliseconds - Date.now()
-        if (milliSecondsLeft < 1000) {
-          return '-:--:--'
+        if (milliSecondsLeft < 1) {
+          milliSecondsLeft = 0
         }
         var hours = Math.floor(milliSecondsLeft / (60 * 60 * 1000))
         milliSecondsLeft = milliSecondsLeft % (60 * 60 * 1000)
@@ -200,24 +236,9 @@
       }
 
       function refreshTimerDisplay(group) {
-        if (timer[group] - Date.now() < 0) {
-          // timer in the past
-          timer[group] = 0
-        }
-        document.getElementById(
-          group + 'Timer'
-        ).innerHTML = timeRemainingReadable(timer[group])
-      }
-
-      function changeTimer(group, milliseconds) {
-        if (timer[group] == 0) {
-          // timer not set, assume prev timer set for Date.now()
-          timer[group] = Date.now()
-        }
-        timer[group] += milliseconds
-        if (timer[group] - Date.now() < 0) {
-          // timer changed to time in past
-          timer[group] = 0 // reset timer
+        const timerDisplay = document.getElementById(group + 'Timer')
+        if (timerDisplay != undefined) {
+          timerDisplay.innerHTML = timeRemainingReadable(timer[group])
         }
       }
 
@@ -230,13 +251,37 @@
         })
       }
 
-      function addTimerEvent(group) {
-        var plusElement = document.getElementById(group + 'plus')
-        plusElement.addEventListener('click', function() {
-          changeTimer(group, plus)
-          refreshTimerDisplay(group)
-          broadcastTimer(group)
-        })
+      function changeTimer(group, milliseconds) {
+        if (timer[group] == 0) {
+          // timer not set, assume prev timer set for Date.now()
+          timer[group] = Date.now()
+        }
+        timer[group] += milliseconds
+        console.log(`timer[group]: ${timer[group]}`)
+        refreshTimerDisplay(group)
+        broadcastTimer(group)
+      }
+
+      function cancelTimer(group) {
+        timer[group] = 0
+        refreshTimerDisplay(group)
+        broadcastTimer(group)
+      }
+
+      function addTimerEvents(group) {
+        for (const key in timeAdjustments) {
+          var adjustElement = document.getElementById(group + key)
+          if (adjustElement != undefined) {
+            adjustElement.addEventListener('click', function() {
+              changeTimer(group, timeAdjustments[key])
+            })
+          }
+        }
+        document
+          .getElementById(group + 'Cancel')
+          .addEventListener('click', function() {
+            cancelTimer(group)
+          })
       }
 
       function runTimer(group) {
@@ -254,21 +299,23 @@
         addBtnEvent('officelight')
         addBtnEvent('livingroom')
         addBtnEvent('filter')
-        addTimerEvent('officelight')
-        var timerId = runTimer('officelight')
+        addTimerEvents('livingroom')
+        addTimerEvents('officelight')
+        var livingroomTimerId = runTimer('livingroom')
+        var officelightTimerId = runTimer('officelight')
         // clearInterval(timerId) // EXAMPLE: stop the timer
         socketInCounterUp('socCountOut')
       })
 
       socket.on('light', function(socketData) {
         socketInCounterUp('socCountIn')
-        if (socketData.timer >= 0) {
-          timer[socketData.group] = socketData.timer
-          refreshTimerDisplay(socketData.group)
-        } else {
+        if (socketData.sync || socketData.timer < 0) {
           switchButton(socketData)
         }
-        // console.log(data)
+        if (socketData.sync || socketData.timer >= 0) {
+          timer[socketData.group] = socketData.timer
+          refreshTimerDisplay(socketData.group)
+        }
       })
     </script>
   </body>
