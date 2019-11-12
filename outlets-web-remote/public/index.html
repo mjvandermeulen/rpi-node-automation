@@ -84,6 +84,11 @@
         </button>
       </p>
       <p>
+        <span class="timer" id="livingroomAlarm">
+          --:--:--
+        </span>
+      </p>
+      <p>
         <span class="btnTitle">
           office
         </span>
@@ -109,6 +114,11 @@
         <button class="cancelBtn" id="officelightCancel">
           cancel
         </button>
+      </p>
+      <p>
+        <span class="timer" id="officelightAlarm">
+          --:--:--
+        </span>
       </p>
       <p>
         <span class="btnTitle">
@@ -140,6 +150,10 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
     <!-- include socket.io client side script -->
+    <script
+      src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js"
+      type="text/javascript"
+    ></script>
     <script>
       var timer = {
         // milliseconds since epoch when timer should go off
@@ -235,10 +249,23 @@
         return `${two(hours)}:${two(minutes)}:${two(secondsLeft)}`
       }
 
-      function refreshTimerDisplay(group) {
+      function setTimeReadable(milliseconds) {
+        if (milliseconds - Date.now() < 1) {
+          return 'timer not set'
+        }
+        // use the moment library
+        return moment(milliseconds).format('dddd hh:mm:ss')
+      }
+
+      function refreshTimerDisplays(group) {
         const timerDisplay = document.getElementById(group + 'Timer')
+        const alarmDisplay = document.getElementById(group + 'Alarm')
+
         if (timerDisplay != undefined) {
           timerDisplay.innerHTML = timeRemainingReadable(timer[group])
+        }
+        if (alarmDisplay != undefined) {
+          alarmDisplay.innerHTML = setTimeReadable(timer[group])
         }
       }
 
@@ -258,13 +285,13 @@
         }
         timer[group] += milliseconds
         console.log(`timer[group]: ${timer[group]}`)
-        refreshTimerDisplay(group)
+        refreshTimerDisplays(group)
         broadcastTimer(group)
       }
 
       function cancelTimer(group) {
         timer[group] = 0
-        refreshTimerDisplay(group)
+        refreshTimerDisplays(group)
         broadcastTimer(group)
       }
 
@@ -287,7 +314,7 @@
       function runTimer(group) {
         var timerId = setInterval(() => {
           if (timer[group] > 0) {
-            refreshTimerDisplay(group)
+            refreshTimerDisplays(group)
           }
         }, 1000)
         return timerId
@@ -314,7 +341,7 @@
         }
         if (socketData.sync || socketData.timer >= 0) {
           timer[socketData.group] = socketData.timer
-          refreshTimerDisplay(socketData.group)
+          refreshTimerDisplays(socketData.group)
         }
       })
     </script>
