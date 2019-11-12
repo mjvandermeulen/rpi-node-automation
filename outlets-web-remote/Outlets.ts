@@ -66,17 +66,24 @@ export class Outlets {
   }
 
   private resetTimer(group: string): void {
-    const timer: Timer = this.timers[group]
-    if (timer != undefined) {
+    // resetTimer VS cancelTimerRequest
+    // resetTimer:
+    //   stops the setTimeOut on the server
+    //   resets the timer to 0
+    console.log(`resetTimer group: ${group}`)
+    if (this.timers[group] != undefined) {
       if (
-        timer.timeOutId != undefined &&
+        this.timers[group].timeOutId != undefined &&
         // if coded properly timeOutId != undefined check is redundant
-        timer.timeOutId != null
+        this.timers[group].timeOutId != null
       ) {
-        clearTimeout(timer.timeOutId)
+        clearTimeout(this.timers[group].timeOutId)
       }
-      timer.time = 0
-      timer.timeOutId = null
+      const resetTimer: Timer = {
+        time: 0,
+        timeOutId: null,
+      }
+      this.timers[group] = resetTimer
     }
   }
 
@@ -105,8 +112,7 @@ export class Outlets {
     let currentTimer: Timer = this.timers[group]
     if (time === 0) {
       // timer cancel requested
-      console.log(`TIMER CANCELLED PER REQUEST time: ${time}`)
-      this.resetTimer(group)
+      this.cancelTimerRequest(group)
     } else if (
       time - Date.now() < 0 &&
       // next time set in the past
@@ -205,13 +211,12 @@ export class Outlets {
   }
 
   public cancelTimerRequest(group: string): void {
+    // cancelTimerRequest VS resetTimer (see notes there)
+    // cancelTimerRequest:
+    //   calls resetTimer
+    //   emits the cancelled timer to all sockets
     console.log(`cancelTimerRequest group: ${group}`)
-    // grant request immediately:
-    const cancelledTimer: Timer = {
-      time: 0,
-      timeOutId: null,
-    }
-    this.timers[group] = cancelledTimer
+    this.resetTimer(group)
     this.emitCancelTimer(group)
   }
 
