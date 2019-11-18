@@ -1,3 +1,4 @@
+<!-- file in .prettierignore because of ejs! -->
 <div>
   <h1><%= title %></h1>
   <% for (const group in groups) { %>
@@ -15,29 +16,25 @@
         off
       </button>
     </p>
-    <% if (groups[group].addTimer) { %>
-    <div class="container">
-      <p>
-        <button class="timerBtn" id="<%= group%>plus">
-          +
-        </button>
-        <span class="timer" id="<%= group%>Timer">
-          --:--:--
-        </span>
-        <button class="timerBtn" id="<%= group%>minus">
-          -
-        </button>
-        <button class="cancelBtn" id="<%= group%>Cancel">
-          cancel
-        </button>
-      </p>
-      <p>
-        <span class="timer" id="<%= group%>Alarm">
-          --:--:--
-        </span>
-      </p>
-    </div>
-    <% } %>
+    <p>
+      <button class="timerBtn" id="<%= group%>plus">
+        +
+      </button>
+      <span class="timer" id="<%= group%>Timer">
+        --:--:--
+      </span>
+      <button class="timerBtn" id="<%= group%>minus">
+        -
+      </button>
+      <button class="cancelBtn" id="<%= group%>Cancel">
+        cancel
+      </button>
+    </p>
+    <p>
+      <span class="timer" id="<%= group%>Alarm">
+        --:--:--
+      </span>
+    </p>
   </div>
   <% } %>
 </div>

@@ -2,13 +2,12 @@ import * as Koa from 'koa'
 import * as json from 'koa-json' // TODO remove
 import * as KoaRouter from 'koa-router'
 import * as path from 'path'
-import * as renderEJS from 'koa-ejs' // NOTE: RENDER
+import * as renderEJS from 'koa-ejs'
 import * as serveStatic from 'koa-static'
 import * as bodyParser from 'koa-bodyparser'
 
 interface Group {
   displayName: string
-  addTimer: boolean
   defaultTimer: number
 }
 
@@ -19,32 +18,26 @@ const router = new KoaRouter()
 
 const livingroom: Group = {
   displayName: 'Living Room',
-  addTimer: false,
   defaultTimer: 0,
 }
 const officelight: Group = {
   displayName: 'Office Light',
-  addTimer: true,
   defaultTimer: 0,
 }
 const coffee: Group = {
   displayName: 'Coffee',
-  addTimer: true,
-  defaultTimer: 0,
+  defaultTimer: 45 * 60 * 1000,
 }
 const fan: Group = {
   displayName: 'Office Fan',
-  addTimer: true,
   defaultTimer: 0,
 }
 const guestlight: Group = {
   displayName: 'Guest Light',
-  addTimer: true,
   defaultTimer: 0,
 }
 const guestnightlight: Group = {
   displayName: 'Guest Night Light',
-  addTimer: false,
   defaultTimer: 0,
 }
 
