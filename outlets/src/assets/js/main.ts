@@ -11,12 +11,15 @@ interface Adjustments {
   minusminus: number
 }
 
+// Not DRY, see app.ts
+interface Group {
+  displayName: string
+  defaultTimer: number
+}
+
 const timers = {
   // milliseconds since epoch when timer should go off
   // 0 if not set
-  livingroom: 0,
-  officelight: 0,
-  filter: 0,
 }
 
 // all times in milliseconds
@@ -182,15 +185,26 @@ function runTimer(group) {
 window.addEventListener('load', function() {
   // old "load" event, even all images will have loaded
   // NOTE: you can click the on or off buttons even if they are "on"
-  addBtnEvent('officelight')
-  addBtnEvent('livingroom')
-  addBtnEvent('filter')
-  addTimerEvents('livingroom')
-  addTimerEvents('officelight')
-  const livingroomTimerId = runTimer('livingroom')
-  const officelightTimerId = runTimer('officelight')
-  // clearInterval(timerId) // EXAMPLE: stop the timer
-  socketCounter('socCountOut')
+  let groups: {} = {}
+  const xhttp = new XMLHttpRequest()
+  xhttp.onreadystatechange = () => {
+    if (xhttp.readyState == 4 && xhttp.status == 200) {
+      groups = JSON.parse(xhttp.responseText)
+      console.log(`groups : ${JSON.stringify(groups)}`)
+
+      addBtnEvent('officelight')
+      addBtnEvent('livingroom')
+      addBtnEvent('filter')
+      addTimerEvents('livingroom')
+      addTimerEvents('officelight')
+      const livingroomTimerId = runTimer('livingroom')
+      const officelightTimerId = runTimer('officelight')
+      // clearInterval(timerId) // EXAMPLE: stop the timer
+      // socketCounter('socCountOut')
+    }
+  }
+  xhttp.open('POST', '', true)
+  xhttp.send()
 })
 
 socket.on('light', function(socketData) {

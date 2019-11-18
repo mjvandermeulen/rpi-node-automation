@@ -72,6 +72,7 @@ renderEJS(app, {
 // Routes
 // Index
 router.get('/', index)
+router.post('/', jsonGroups)
 
 // list of things
 async function index(ctx: any) {
@@ -79,6 +80,10 @@ async function index(ctx: any) {
     title: 'Remote Outlets',
     groups,
   })
+}
+
+async function jsonGroups(ctx: any) {
+  ctx.body = JSON.stringify(groups)
 }
 
 // Router Middleware
