@@ -46,9 +46,19 @@ export class Outlets {
 
   private groups: Groups
 
-  constructor(http: string, channel: string, groupsSettings: GroupsSettings) {
-    this.io = socketio(http)
+  constructor(server: any, channel: string, groupsSettings: GroupsSettings) {
+    this.io = socketio(server)
     this.channel = channel
+    this.groups = {}
+    for (const groupSetting in groupsSettings) {
+      this.groups[groupSetting] = {
+        mode: false,
+        timer: {
+          time: groupsSettings[groupSetting].defaultTimer,
+          timeOutObject: null,
+        },
+      }
+    }
     this.groups
     this.io.sockets.on('connection', (socket: any) => {
       socket.on(this.channel, (socketData: SocketData) => {

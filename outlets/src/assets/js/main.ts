@@ -164,7 +164,6 @@ function changeTimer(group: string, milliseconds: number) {
     timers[group] = Date.now()
   }
   timers[group] += milliseconds
-  console.log(`timers[group]: ${timers[group]}`)
   refreshTimerDisplays(group)
   broadcastTimer(group)
 }
@@ -209,7 +208,6 @@ window.addEventListener('load', function() {
   xhttp.onreadystatechange = () => {
     if (xhttp.readyState == 4 && xhttp.status == 200) {
       const groups = JSON.parse(xhttp.responseText)
-      console.log(`groups : ${JSON.stringify(groups)}`)
       // init timers
       groups.forEach((group: string) => {
         timers[group] = 0
@@ -217,8 +215,9 @@ window.addEventListener('load', function() {
 
       addBtnEvents(groups)
       addTimerEvents(groups)
+      // TODO ******
       // const livingroomTimerId = runTimer('livingroom')
-      const officelightTimerId = runTimer('officelight')
+      // const officelightTimerId = runTimer('officelight')
       // clearInterval(timerId) // EXAMPLE: stop the timer
       // socketCounter('socCountOut')
     }

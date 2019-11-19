@@ -1,18 +1,25 @@
 import * as Koa from 'koa'
+import * as http from 'http'
 import * as json from 'koa-json' // TODO remove
 import * as KoaRouter from 'koa-router'
 import * as path from 'path'
 import * as renderEJS from 'koa-ejs'
 import * as serveStatic from 'koa-static'
 import * as bodyParser from 'koa-bodyparser'
-import { GroupsSettings } from './Outlets'
+import { GroupsSettings, Outlets } from './Outlets'
 
+// io.on('connection', () => {
+//   /* … */
+// })
+// server.listen(3000)
+
+// const app = require('koa')()
 const port: number = 3000
-
 const app = new Koa()
+const server = http.createServer(app.callback())
+// const io = require('socket.io')(server)
 const router = new KoaRouter()
 
-// LEARN **** try to add bogus keys
 const groupsSettings: GroupsSettings = {
   // bogus: {
   //   displayName: 'Bogus',
@@ -45,6 +52,9 @@ const groupsSettings: GroupsSettings = {
   //   defaultTimer: 0,
   // },
 }
+const outlets = new Outlets(server, 'light', groupsSettings)
+
+// LEARN **** try to add bogus keys
 
 const groups: string[] = Object.keys(groupsSettings)
 
@@ -87,7 +97,7 @@ async function serveGroups(ctx: any) {
 
 // Router Middleware
 app.use(router.routes()).use(router.allowedMethods())
-app.listen(port, () => console.log(`server started on port: ${port}`))
+server.listen(port, () => console.log(`server started on port: ${port}`))
 
 process.on('SIGINT', function() {
   // LED.writeSync(0)
