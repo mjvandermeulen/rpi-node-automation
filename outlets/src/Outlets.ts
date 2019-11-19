@@ -8,7 +8,8 @@ import { PythonShell, Options } from 'python-shell'
 interface SocketData {
   // this is ambiguous:
   // how to know if mode needs to be changed?
-  // currently: if sync || timer < 0 UGLY ** TODO
+  // currently: if sync || timer < 0 UGLY
+  // TODO *** split in different socket channels?
   group: string
   sync: boolean
   mode: boolean
@@ -16,22 +17,39 @@ interface SocketData {
 }
 
 interface Timer {
-  time: number
-  timeOutId: number // object in Node! TS doesn't now?
+  time: number // milliseconds since Epoch
+  timeOutObject: null | NodeJS.Timeout // setTimeOut returns an object in Node!!!
+}
+
+interface GroupSetting {
+  displayName: string
+  defaultTimer: number
+}
+
+// LEARN ***
+export interface GroupsSettings {
+  [key: string]: GroupSetting
+}
+
+interface Group {
+  mode: boolean
+  timer: Timer
+}
+
+interface Groups {
+  [key: string]: Group
 }
 
 export class Outlets {
-  private io
+  private io: SocketIO.Server
   public channel: string
 
-  private onOutlets
-  private timers
+  private groups: Groups
 
-  constructor(http, channel) {
+  constructor(http: string, channel: string, groupsSettings: GroupsSettings) {
     this.io = socketio(http)
     this.channel = channel
-    this.onOutlets = new Set([])
-    this.timers = {}
+    this.groups
     this.io.sockets.on('connection', (socket: any) => {
       socket.on(this.channel, (socketData: SocketData) => {
         // console.log(`socket.on JSON socket.data: ${JSON.stringify(socketData)}`)
@@ -40,11 +58,8 @@ export class Outlets {
           const returnData: SocketData = {
             group: socketData.group,
             sync: true,
-            mode: this.onOutlets.has(socketData.group),
-            timer:
-              this.timers[socketData.group] != undefined
-                ? this.timers[socketData.group].time
-                : 0,
+            mode: this.groups[socketData.group].mode,
+            timer: this.groups[socketData.group].timer.time,
           }
           // only emit to current socket.
           socket.emit(this.channel, returnData)
@@ -71,45 +86,47 @@ export class Outlets {
     //   stops the setTimeOut on the server
     //   resets the timer to 0
     console.log(`resetTimer group: ${group}`)
-    if (this.timers[group] != undefined) {
-      if (
-        this.timers[group].timeOutId != undefined &&
-        // if coded properly timeOutId != undefined check is redundant
-        this.timers[group].timeOutId != null
-      ) {
-        clearTimeout(this.timers[group].timeOutId)
-      }
-      const resetTimer: Timer = {
-        time: 0,
-        timeOutId: null,
-      }
-      this.timers[group] = resetTimer
+    // if (this.groups[group] != undefined) {
+    //   // DANG I can skip the undefined!!!! LEARN **** because of typescript!!!
+    //   if (
+    //     this.groups[group].timer.timeOutObject != undefined &&
+    //     // if coded properly timeOutObject != undefined check is redundant
+    if (this.groups[group].timer.timeOutObject != null) {
+      clearTimeout(this.groups[group].timer.timeOutObject as NodeJS.Timeout)
+      // LEARN typescript type assertion: "as"
+      // I can do this after the null check. ****
+      // LEARN **** https://www.typescriptlang.org/docs/handbook/advanced-types.html#type-guards-and-differentiating-types
     }
+    const resetTimer: Timer = {
+      time: 0,
+      timeOutObject: null,
+    }
+    this.groups[group].timer = resetTimer
   }
 
   private timerTimeOutCallback(group: string): void {
-    this.timers[group].timeOutId = null // useless???? solve later in function
-    let t: Timer = this.timers[group]
+    this.groups[group].timer.timeOutObject = null // useless???? solve later in function
+    let t: Timer = this.groups[group].timer
     let timeLeft = t.time - Date.now()
     if (timeLeft < 100) {
       // time to fire the timer
       this.toggleRequest(group)
       this.cancelTimerRequest(group)
     } else if (timeLeft < 1000) {
-      t.timeOutId = setTimeout(() => {
+      t.timeOutObject = setTimeout(() => {
         this.timerTimeOutCallback(group)
       }, timeLeft)
     } else {
       // MAKE DRY TODO **** see above and below below
       let halfTime = Math.floor(timeLeft) / 2
-      t.timeOutId = setTimeout(() => {
+      t.timeOutObject = setTimeout(() => {
         this.timerTimeOutCallback(group)
       }, halfTime)
     }
   }
 
   private updateTimer(group: string, time: number): void {
-    let currentTimer: Timer = this.timers[group]
+    let currentTimer: Timer = this.groups[group].timer
     if (time === 0) {
       // timer cancel requested
       this.cancelTimerRequest(group)
@@ -133,9 +150,9 @@ export class Outlets {
       }, halfTime)
       const nextTimer = {
         time,
-        timeOutId: iD,
+        timeOutObject: iD,
       }
-      this.timers[group] = nextTimer
+      this.groups[group].timer = nextTimer
     }
   }
 
@@ -148,11 +165,7 @@ export class Outlets {
       scriptPath: '/home/pi/Programming/Automation/executables',
       args: [group, modeString, '--attempts', '3'],
     }
-    if (mode) {
-      this.onOutlets.add(group)
-    } else {
-      this.onOutlets.delete(group)
-    }
+    this.groups[group].mode = mode
     eventEmitter.emit('groupChangedEvent' + group)
 
     PythonShell.run('rfoutlets_switch_group.py', options, function(
@@ -221,7 +234,7 @@ export class Outlets {
   }
 
   public groupOn(group: string): boolean {
-    return this.onOutlets.has(group)
+    return this.groups[group].mode // ***** TODO this is useless now.... refactor
   }
 
   public toggleRequest(group: string): boolean {

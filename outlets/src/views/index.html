@@ -1,11 +1,11 @@
 <!-- file in .prettierignore because of ejs! -->
 <div>
   <h1><%= title %></h1>
-  <% for (const group in groups) { %>
+  <% for (const group in groupsSettings) { %>
   <div>
     <p>
       <span class="btnTitle">
-        <%= groups[group].displayName %>
+        <%= groupsSettings[group].displayName %>
       </span>
     </p>
     <p>

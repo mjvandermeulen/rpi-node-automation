@@ -5,50 +5,48 @@ import * as path from 'path'
 import * as renderEJS from 'koa-ejs'
 import * as serveStatic from 'koa-static'
 import * as bodyParser from 'koa-bodyparser'
-
-interface Group {
-  displayName: string
-  defaultTimer: number
-}
+import { GroupsSettings } from './Outlets'
 
 const port: number = 3000
 
 const app = new Koa()
 const router = new KoaRouter()
 
-const livingroom: Group = {
-  displayName: 'Living Room',
-  defaultTimer: 0,
-}
-const officelight: Group = {
-  displayName: 'Office Light',
-  defaultTimer: 0,
-}
-const coffee: Group = {
-  displayName: 'Coffee',
-  defaultTimer: 45 * 60 * 1000,
-}
-const fan: Group = {
-  displayName: 'Office Fan',
-  defaultTimer: 0,
-}
-const guestlight: Group = {
-  displayName: 'Guest Light',
-  defaultTimer: 0,
-}
-const guestnightlight: Group = {
-  displayName: 'Guest Night Light',
-  defaultTimer: 0,
+// LEARN **** try to add bogus keys
+const groupsSettings: GroupsSettings = {
+  // bogus: {
+  //   displayName: 'Bogus',
+  //   defaultTimer: 12,
+  //   bogus: 'app',
+  // },
+
+  // livingroom: {
+  //   displayName: 'Living Room',
+  //   defaultTimer: 0,
+  // },
+  officelight: {
+    displayName: 'Office Light',
+    defaultTimer: 0,
+  },
+  coffee: {
+    displayName: 'Coffee',
+    defaultTimer: 45 * 60 * 1000,
+  },
+  // fan: {
+  //   displayName: 'Office Fan',
+  //   defaultTimer: 0,
+  // },
+  // guestlight: {
+  //   displayName: 'Guest Light',
+  //   defaultTimer: 0,
+  // },
+  // guestnightlight: {
+  //   displayName: 'Guest Night Light',
+  //   defaultTimer: 0,
+  // },
 }
 
-const groups = {
-  // livingroom,
-  officelight,
-  // fan,
-  coffee,
-  // guestlight,
-  // guestnightlight,
-}
+const groups: string[] = Object.keys(groupsSettings)
 
 // Json Prettier Middleware
 app.use(json())
@@ -72,23 +70,23 @@ renderEJS(app, {
 // Routes
 // Index
 router.get('/', index)
-router.post('/', jsonGroups)
+router.get('/data/groups', serveGroups)
+// router.post('/', serveGroups)
 
 // list of things
 async function index(ctx: any) {
   await ctx.render('index', {
     title: 'Remote Outlets',
-    groups,
+    groupsSettings,
   })
 }
 
-async function jsonGroups(ctx: any) {
+async function serveGroups(ctx: any) {
   ctx.body = JSON.stringify(groups)
 }
 
 // Router Middleware
 app.use(router.routes()).use(router.allowedMethods())
-
 app.listen(port, () => console.log(`server started on port: ${port}`))
 
 process.on('SIGINT', function() {

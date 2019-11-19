@@ -29,9 +29,10 @@
     "@types/koa-ejs": "^4.2.0",
     "@types/koa-json": "^2.0.18",
     "@types/koa-router": "^7.0.42",
+    "@types/socket.io": "^2.1.4",
     "nodemon": "^1.19.4",
     "prettier": "^1.19.1",
-    "ts-node": "^8.5.0",
+    "ts-node": "^8.5.2",
     "ts-node-dev": "^1.0.0-pre.44",
     "typescript": "^3.7.2"
   }
