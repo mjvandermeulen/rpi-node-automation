@@ -1,41 +1,43 @@
 <!-- file in .prettierignore because of ejs! -->
 <div>
   <h1><%= title %></h1>
-  <% for (const group in groupsSettings) { %>
-  <div>
-    <p>
-      <span class="btnTitle">
-        <%= groupsSettings[group].displayName %>
-      </span>
-    </p>
-    <p>
-      <button class="onOffBtn" id="<%= group%>On">
-        on
-      </button>
-      <button class="onOffBtn" id="<%= group%>Off">
-        off
-      </button>
-    </p>
-    <p>
-      <button class="timerBtn" id="<%= group%>plus">
-        +
-      </button>
-      <span class="timer" id="<%= group%>Timer">
-        --:--:--
-      </span>
-      <button class="timerBtn" id="<%= group%>minus">
-        -
-      </button>
-      <button class="cancelBtn" id="<%= group%>Cancel">
-        cancel
-      </button>
-    </p>
-    <p>
-      <span class="timer" id="<%= group%>Alarm">
-        --:--:--
-      </span>
-    </p>
-  </div>
+  <% for (const group in groupsSettings) { %> 
+    <% if (groupsSettings[group].enabled) { %>
+    <div>
+      <p>
+        <span class="btnTitle">
+          <%= groupsSettings[group].displayName %>
+        </span>
+      </p>
+      <p>
+        <button class="onOffBtn" id="<%= group%>On">
+          on
+        </button>
+        <button class="onOffBtn" id="<%= group%>Off">
+          off
+        </button>
+      </p>
+      <p>
+        <button class="timerBtn" id="<%= group%>plus">
+          +
+        </button>
+        <span class="timer" id="<%= group%>Timer">
+          --:--:--
+        </span>
+        <button class="timerBtn" id="<%= group%>minus">
+          -
+        </button>
+        <button class="cancelBtn" id="<%= group%>Cancel">
+          cancel
+        </button>
+      </p>
+      <p>
+        <span class="timer" id="<%= group%>Alarm">
+          --:--:--
+        </span>
+      </p>
+    </div>
+    <% } %> 
   <% } %>
 </div>
 <div id="counters">

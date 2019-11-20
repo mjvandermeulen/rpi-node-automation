@@ -6,59 +6,21 @@ import * as path from 'path'
 import * as renderEJS from 'koa-ejs'
 import * as serveStatic from 'koa-static'
 import * as bodyParser from 'koa-bodyparser'
-import { GroupsSettings, Outlets } from './Outlets'
 
-// io.on('connection', () => {
-//   /* … */
-// })
-// server.listen(3000)
+import { Outlets } from './Outlets'
+import { groupsSettings } from './group-settings'
 
-// const app = require('koa')()
+// app/server initialization
 const port: number = 3000
 const app = new Koa()
 const server = http.createServer(app.callback())
 // const io = require('socket.io')(server)
 const router = new KoaRouter()
 
-const groupsSettings: GroupsSettings = {
-  // bogus: {
-  //   displayName: 'Bogus',
-  //   defaultTimer: 12,
-  //   bogus: 'app',
-  // },
-
-  // livingroom: {
-  //   displayName: 'Living Room',
-  //   defaultTimer: 0,
-  // },
-  officelight: {
-    displayName: 'Office Light',
-    defaultTimer: 0,
-  },
-  coffee: {
-    displayName: 'Coffee',
-    defaultTimer: 45 * 60 * 1000,
-  },
-  // fan: {
-  //   displayName: 'Office Fan',
-  //   defaultTimer: 0,
-  // },
-  // guestlight: {
-  //   displayName: 'Guest Light',
-  //   defaultTimer: 0,
-  // },
-  // guestnightlight: {
-  //   displayName: 'Guest Night Light',
-  //   defaultTimer: 0,
-  // },
-}
 const outlets = new Outlets(server, 'light', groupsSettings)
 
-// LEARN **** try to add bogus keys
-
-const groups: string[] = Object.keys(groupsSettings)
-
-// Json Prettier Middleware
+// Json Prettier Middleware (not needed when working with Chrome)
+// I can't tell the difference....
 app.use(json())
 
 // Hello World JSON
@@ -78,8 +40,9 @@ renderEJS(app, {
 })
 
 // Routes
-// Index
+//   Index
 router.get('/', index)
+//   Data API
 router.get('/data/groups', serveGroups)
 // router.post('/', serveGroups)
 
@@ -92,7 +55,9 @@ async function index(ctx: any) {
 }
 
 async function serveGroups(ctx: any) {
-  ctx.body = JSON.stringify(groups)
+  // data: array of the groupSettings keys. e.g.: ['livingroom', 'officelight']
+  const data = Object.keys(groupsSettings)
+  ctx.body = JSON.stringify(data)
 }
 
 // Router Middleware

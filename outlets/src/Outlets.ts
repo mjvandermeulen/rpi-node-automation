@@ -4,6 +4,7 @@ const eventEmitter = new events.EventEmitter()
 import * as socketio from 'socket.io'
 
 import { PythonShell, Options } from 'python-shell'
+import { GroupsSettings } from './group-settings'
 
 interface SocketData {
   // this is ambiguous:
@@ -19,16 +20,6 @@ interface SocketData {
 interface Timer {
   time: number // milliseconds since Epoch
   timeOutObject: null | NodeJS.Timeout // setTimeOut returns an object in Node!!!
-}
-
-interface GroupSetting {
-  displayName: string
-  defaultTimer: number
-}
-
-// LEARN ***
-export interface GroupsSettings {
-  [key: string]: GroupSetting
 }
 
 interface Group {
@@ -50,13 +41,15 @@ export class Outlets {
     this.io = socketio(server)
     this.channel = channel
     this.groups = {}
-    for (const groupSetting in groupsSettings) {
-      this.groups[groupSetting] = {
-        mode: false,
-        timer: {
-          time: groupsSettings[groupSetting].defaultTimer,
-          timeOutObject: null,
-        },
+    for (const groupKey in groupsSettings) {
+      if (groupsSettings[groupKey].enabled) {
+        this.groups[groupKey] = {
+          mode: false,
+          timer: {
+            time: groupsSettings[groupKey].defaultTimer,
+            timeOutObject: null,
+          },
+        }
       }
     }
     this.groups
@@ -244,7 +237,7 @@ export class Outlets {
   }
 
   public groupOn(group: string): boolean {
-    return this.groups[group].mode // ***** TODO this is useless now.... refactor
+    return this.groups[group].mode // *** TODO this is useless now.... refactor
   }
 
   public toggleRequest(group: string): boolean {

@@ -4,7 +4,7 @@ declare const moment: any
 
 const socket = io() // load socket.io-client and connect to the host that serves the page
 
-// ***** LEARN not sure how to do this with interface...
+// *** LEARN not sure how to do this with interface...
 // ??? capitalize?
 type Groups = string[]
 // **** could you just import socketData from outlets, since it's for
