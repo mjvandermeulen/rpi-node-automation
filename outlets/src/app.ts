@@ -9,6 +9,7 @@ import * as bodyParser from 'koa-bodyparser'
 
 import { Outlets } from './Outlets'
 import { groupsSettings } from './group-settings'
+import { initPhysicalButton } from './physical-button'
 
 // app/server initialization
 const port: number = 3000
@@ -17,7 +18,9 @@ const server = http.createServer(app.callback())
 // const io = require('socket.io')(server)
 const router = new KoaRouter()
 
+// Outlets and physical pushbutton init
 const outlets = new Outlets(server, 'light', groupsSettings)
+initPhysicalButton(outlets, 'officelight')
 
 // Json Prettier Middleware (not needed when working with Chrome)
 // I can't tell the difference....
