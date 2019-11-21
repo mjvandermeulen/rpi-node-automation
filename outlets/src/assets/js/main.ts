@@ -17,7 +17,7 @@ interface SocketData {
 }
 
 class Timers {
-  private smallAdjustment: number = 5 * 1000
+  private smallAdjustment: number = 5 * 60 * 1000
   private largeAdjustment: number = 30 * 60 * 1000
   private timeAdjustments: { [key: string]: number } = {
     plus: this.smallAdjustment,
@@ -63,10 +63,10 @@ class Timers {
     const alarmDisplay = document.getElementById(group + 'Alarm')
     if (timerDisplay != null) {
       // ***** LEARN getElementById returns null
-      timerDisplay.innerHTML = timeRemainingReadable(this.timers[group])
+      timerDisplay.innerHTML = readableTimeRemaining(this.timers[group])
     }
     if (alarmDisplay != null) {
-      alarmDisplay.innerHTML = setTimeReadable(this.timers[group])
+      alarmDisplay.innerHTML = readableSetTime(this.timers[group])
     }
   }
 
@@ -191,7 +191,7 @@ function addBtnEvents(groups: Groups): void {
   })
 }
 
-function timeRemainingReadable(milliseconds: number): string {
+function readableTimeRemaining(milliseconds: number): string {
   // timers in the past are displayed as zeros
   // so a reset timer (= 0) is displayed as zeros as well
   function two(number: number) {
@@ -202,7 +202,7 @@ function timeRemainingReadable(milliseconds: number): string {
     }
   }
   let milliSecondsLeft = milliseconds - Date.now()
-  if (milliSecondsLeft < 1) {
+  if (milliSecondsLeft < 0) {
     milliSecondsLeft = 0
   }
   const hours = Math.floor(milliSecondsLeft / (60 * 60 * 1000))
@@ -210,15 +210,20 @@ function timeRemainingReadable(milliseconds: number): string {
   const minutes = Math.floor(milliSecondsLeft / (60 * 1000))
   milliSecondsLeft %= 60 * 1000
   const secondsLeft = Math.floor(milliSecondsLeft / 1000)
-  return `${two(hours)}:${two(minutes)}:${two(secondsLeft)}`
+  const blinker = secondsLeft % 2 == 0 ? ':' : ' '
+  if (minutes < 10) {
+    return `${two(minutes)}:${two(secondsLeft)}`
+  } else {
+    return `${two(hours)}${blinker}${two(minutes)}`
+  }
 }
 
-function setTimeReadable(milliseconds: number): string {
+function readableSetTime(milliseconds: number): string {
   if (milliseconds - Date.now() < 1) {
     return 'timer not set'
   }
   // use the moment library
-  return moment(milliseconds).format('dddd hh:mm:ss')
+  return moment(milliseconds).format('dddd hh:mm:ss a')
 }
 
 window.addEventListener('load', function() {
