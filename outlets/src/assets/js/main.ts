@@ -16,31 +16,114 @@ interface SocketData {
   timer: number
 }
 
-// Old and obsolete, see timeAdjustments
-// interface Adjustments {
-//   plus: number
-//   plusplus: number
-//   minus: number
-//   minusminus: number
-// }
+class Timers {
+  private smallAdjustment: number = 5 * 1000
+  private largeAdjustment: number = 30 * 60 * 1000
+  private timeAdjustments: { [key: string]: number } = {
+    plus: this.smallAdjustment,
+    plusplus: this.largeAdjustment,
+    minus: -this.smallAdjustment,
+    minusminus: -this.largeAdjustment,
+  }
+  private timers: { [key: string]: number }
 
-// let groups: Groups
-const timers: { [key: string]: number } = {}
+  constructor() {
+    this.timers = {}
 
-// all times in milliseconds
-const smallAdjustment: number = 5 * 1000
-const largeAdjustment: number = 30 * 60 * 1000
+    // this.addTimerEvents()
+    // this.runTimers()
+  }
+  public setTimerGroups(groups: Groups) {
+    groups.forEach(groupKey => {
+      this.timers[groupKey] = 0
+    })
+  }
 
-const timeAdjustments: { [key: string]: number } = {
-  plus: smallAdjustment,
-  plusplus: largeAdjustment,
-  minus: -smallAdjustment,
-  minusminus: -largeAdjustment,
+  public addTimerEvents() {
+    for (const timerKey in this.timers) {
+      for (const key in this.timeAdjustments) {
+        const adjustElement = document.getElementById(timerKey + key)
+        if (adjustElement != null) {
+          // getElementById returns null
+          adjustElement.addEventListener('click', () => {
+            this.changeTimer(timerKey, this.timeAdjustments[key])
+          })
+        }
+      }
+      document
+        .getElementById(timerKey + 'Cancel')
+        ?.addEventListener('click', () => {
+          this.cancelTimer(timerKey)
+        })
+    }
+  }
+
+  private refreshTimerDisplays(group: string) {
+    const timerDisplay = document.getElementById(group + 'Timer')
+    const alarmDisplay = document.getElementById(group + 'Alarm')
+    if (timerDisplay != null) {
+      // ***** LEARN getElementById returns null
+      timerDisplay.innerHTML = timeRemainingReadable(this.timers[group])
+    }
+    if (alarmDisplay != null) {
+      alarmDisplay.innerHTML = setTimeReadable(this.timers[group])
+    }
+  }
+
+  // ***** NodeJS.Timeout is bogus: The client is not in Node JS but "Browser JS"
+  public runTimers(): NodeJS.Timeout {
+    // WRONG NAME: better: **** startRefreshTimersInterval
+    // Check all Timers every second TODO: setInterval to top of second.
+    // Tricky since you can't set a timeout till top of the second and still
+    // return the timerId
+
+    const timerId: NodeJS.Timeout = setInterval(() => {
+      for (const timerKey in this.timers) {
+        if (this.timers[timerKey] > 0) {
+          this.refreshTimerDisplays(timerKey)
+        }
+      }
+    }, 1000)
+    return timerId
+  }
+
+  private changeTimer(group: string, milliseconds: number) {
+    if (this.timers[group] == 0) {
+      // timer not set, assume prev timer set for Date.now()
+      this.timers[group] = Date.now()
+    }
+    this.timers[group] += milliseconds
+    this.refreshTimerDisplays(group)
+    this.broadcastTimer(group)
+  }
+
+  private cancelTimer(group: string) {
+    this.timers[group] = 0
+    this.refreshTimerDisplays(group)
+    this.broadcastTimer(group)
+  }
+
+  private broadcastTimer(group: string) {
+    socket.emit('light', {
+      group: group, //TODO: try group
+      sync: false,
+      mode: false,
+      timer: this.timers[group],
+    })
+    socketCounter('socCountOut')
+  }
+
+  public processSocketData(socketData: SocketData) {
+    this.timers[socketData.group] = socketData.timer
+    this.refreshTimerDisplays(socketData.group)
+  }
 }
+
+let timers: Timers = new Timers() // ***** change name: same as timers.timers
 
 function socketCounter(spanId: string): void {
   const counter = document.getElementById(spanId)
-  if (counter != undefined) {
+  if (counter != null) {
     const c = parseInt(counter.innerHTML) + 1
     counter.innerHTML = c.toString()
   }
@@ -50,7 +133,7 @@ function switchButton(data: SocketData): void {
   // change from data to group and mode TODO ***
   var onElement = document.getElementById(data.group + 'On')
   var offElement = document.getElementById(data.group + 'Off')
-  if (onElement != undefined && offElement != undefined) {
+  if (onElement != null && offElement != null) {
     if (data.mode) {
       onElement.classList.add('btnOnOffActive')
       offElement.classList.remove('btnOnOffActive')
@@ -66,9 +149,10 @@ function addBtnEvents(groups: Groups): void {
   groups.forEach(group => {
     var onElement = document.getElementById(group + 'On')
     var offElement = document.getElementById(group + 'Off')
-    if (onElement != undefined && offElement != undefined) {
+    if (onElement != null && offElement != null) {
       onElement.addEventListener('click', () => {
-        if (onElement != undefined && offElement != undefined) {
+        if (onElement != null && offElement != null) {
+          // checked twice to stop Typescript from complaining...
           onElement.classList.add('btnOnOffActive')
           offElement.classList.remove('btnOnOffActive')
           socket.emit('light', {
@@ -82,7 +166,7 @@ function addBtnEvents(groups: Groups): void {
       })
 
       offElement.addEventListener('click', () => {
-        if (onElement != undefined && offElement != undefined) {
+        if (onElement != null && offElement != null) {
           onElement.classList.remove('btnOnOffActive')
           offElement.classList.add('btnOnOffActive')
           socket.emit('light', {
@@ -137,89 +221,18 @@ function setTimeReadable(milliseconds: number): string {
   return moment(milliseconds).format('dddd hh:mm:ss')
 }
 
-function refreshTimerDisplays(group: string) {
-  const timerDisplay = document.getElementById(group + 'Timer')
-  const alarmDisplay = document.getElementById(group + 'Alarm')
-  if (timerDisplay != undefined) {
-    timerDisplay.innerHTML = timeRemainingReadable(timers[group])
-  }
-  if (alarmDisplay != undefined) {
-    alarmDisplay.innerHTML = setTimeReadable(timers[group])
-  }
-}
-
-function broadcastTimer(group: string) {
-  socket.emit('light', {
-    group: group, //TODO: try group
-    sync: false,
-    mode: false,
-    timer: timers[group],
-  })
-  socketCounter('socCountOut')
-}
-
-function changeTimer(group: string, milliseconds: number) {
-  if (timers[group] == 0) {
-    // timer not set, assume prev timer set for Date.now()
-    timers[group] = Date.now()
-  }
-  timers[group] += milliseconds
-  refreshTimerDisplays(group)
-  broadcastTimer(group)
-}
-
-function cancelTimer(group: string) {
-  timers[group] = 0
-  refreshTimerDisplays(group)
-  broadcastTimer(group)
-}
-
-function addTimerEvents(groups: Groups) {
-  groups.forEach(group => {
-    for (const key in timeAdjustments) {
-      const adjustElement = document.getElementById(group + key)
-      if (adjustElement != undefined) {
-        adjustElement.addEventListener('click', function() {
-          changeTimer(group, timeAdjustments[key])
-        })
-      }
-    }
-    document
-      .getElementById(group + 'Cancel')
-      ?.addEventListener('click', function() {
-        cancelTimer(group)
-      })
-  })
-}
-
-function runTimer(group: string) {
-  const timerId = setInterval(() => {
-    if (timers[group] > 0) {
-      refreshTimerDisplays(group)
-    }
-  }, 1000)
-  return timerId
-}
-
 window.addEventListener('load', function() {
   // old "load" event, even all images will have loaded
-  // NOTE: you can click the on or off buttons even if they are "on"
+  // NOTE: you can click the on or off buttons even if they are selected
   const xhttp = new XMLHttpRequest()
   xhttp.onreadystatechange = () => {
     if (xhttp.readyState == 4 && xhttp.status == 200) {
       const groups = JSON.parse(xhttp.responseText)
-      // init timers
-      groups.forEach((group: string) => {
-        timers[group] = 0
-      })
 
       addBtnEvents(groups)
-      addTimerEvents(groups)
-      // TODO ******
-      // const livingroomTimerId = runTimer('livingroom')
-      // const officelightTimerId = runTimer('officelight')
-      // clearInterval(timerId) // EXAMPLE: stop the timer
-      // socketCounter('socCountOut')
+      timers.setTimerGroups(groups)
+      timers.addTimerEvents()
+      timers.runTimers()
     }
   }
   xhttp.open('GET', 'data/groups', true)
@@ -232,7 +245,6 @@ socket.on('light', function(socketData: SocketData) {
     switchButton(socketData)
   }
   if (socketData.sync || socketData.timer >= 0) {
-    timers[socketData.group] = socketData.timer
-    refreshTimerDisplays(socketData.group)
+    timers.processSocketData(socketData)
   }
 })

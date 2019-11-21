@@ -53,7 +53,7 @@ export class Outlets {
       }
     }
     this.groups
-    this.io.sockets.on('connection', (socket: any) => {
+    this.io.sockets.on('connection', (socket: socketio.Socket) => {
       socket.on(this.channel, (socketData: SocketData) => {
         // console.log(`socket.on JSON socket.data: ${JSON.stringify(socketData)}`)
         if (socketData.sync) {
@@ -67,13 +67,16 @@ export class Outlets {
           // only emit to current socket.
           socket.emit(this.channel, returnData)
         } else if (socketData.timer >= 0) {
-          socket.broadcast.emit(this.channel, socketData)
           // TODO change to this.timerChangeRequestWithBroadcast(....)
-          // see i.e.: this.switchRequestWithBroadcast
-          this.updateTimer(socketData.group, socketData.timer)
+          // see i.e.: this.switchAndBroadcastRequest
+          this.timerUpdateAndBroadcastRequest(
+            socket,
+            socketData.group,
+            socketData.timer
+          )
         } else {
           // always send light signal, even if server thinks the modes match
-          this.switchRequestWithBroadcast(
+          this.switchAndBroadcastRequest(
             socketData.group,
             socketData.mode,
             socket
@@ -83,79 +86,82 @@ export class Outlets {
     })
   }
 
-  private resetTimer(group: string): void {
-    // resetTimer VS cancelTimerRequest
-    // resetTimer:
+  private setTimer(group: string, time: number): void {
+    // setTimer VS cancelTimerRequest (see notes there)
+    // setTimer:
     //   stops the setTimeOut on the server
-    //   resets the timer to 0
-    console.log(`resetTimer group: ${group}`)
-    // if (this.groups[group] != undefined) {
-    //   // DANG I can skip the undefined!!!! LEARN **** because of typescript!!!
-    //   if (
-    //     this.groups[group].timer.timeOutObject != undefined &&
-    //     // if coded properly timeOutObject != undefined check is redundant
+    //   resets the timer to 0 on the server
+    console.log(`setTimer group: ${group}`)
     if (this.groups[group].timer.timeOutObject != null) {
       clearTimeout(this.groups[group].timer.timeOutObject as NodeJS.Timeout)
       // LEARN typescript type assertion: "as"
       // I can do this after the null check. ****
       // LEARN **** https://www.typescriptlang.org/docs/handbook/advanced-types.html#type-guards-and-differentiating-types
     }
-    const resetTimer: Timer = {
-      time: 0,
+    const setTimer: Timer = {
+      time,
       timeOutObject: null,
     }
-    this.groups[group].timer = resetTimer
+    this.groups[group].timer = setTimer
   }
 
-  private timerTimeOutCallback(group: string): void {
-    this.groups[group].timer.timeOutObject = null // useless???? solve later in function
-    let t: Timer = this.groups[group].timer
-    let timeLeft = t.time - Date.now()
+  private runTimer(group: string): void {
+    let timer: Timer = this.groups[group].timer
+    const timeLeft = timer.time - Date.now()
     if (timeLeft < 100) {
       // time to fire the timer
       this.toggleRequest(group)
       this.cancelTimerRequest(group)
     } else if (timeLeft < 1000) {
-      t.timeOutObject = setTimeout(() => {
-        this.timerTimeOutCallback(group)
+      timer.timeOutObject = setTimeout(() => {
+        this.runTimer(group)
       }, timeLeft)
     } else {
-      // MAKE DRY TODO **** see above and below below
       let halfTime = Math.floor(timeLeft) / 2
-      t.timeOutObject = setTimeout(() => {
-        this.timerTimeOutCallback(group)
+      timer.timeOutObject = setTimeout(() => {
+        this.runTimer(group)
       }, halfTime)
     }
   }
 
-  private updateTimer(group: string, time: number): void {
-    let currentTimer: Timer = this.groups[group].timer
+  private timerBroadcast(
+    socket: SocketIO.Socket,
+    group: string,
+    timer: number,
+    emitAll = false
+  ): void {
+    const socketData: SocketData = {
+      group,
+      sync: false,
+      mode: false,
+      timer,
+    }
+    if (emitAll) {
+      this.io.emit(this.channel, socketData)
+    } else {
+      socket.broadcast.emit(this.channel, socketData)
+    }
+  }
+
+  private timerUpdateAndBroadcastRequest(
+    socket: socketio.Socket,
+    group: string,
+    time: number
+  ): void {
+    let currentTimer: Timer = this.groups[group]?.timer
     if (time === 0) {
-      // timer cancel requested
       this.cancelTimerRequest(group)
     } else if (
       time - Date.now() < 0 &&
-      // next time set in the past
       (currentTimer == undefined || currentTimer.time == 0)
-      // timer not set
     ) {
-      console.log('CAN NOT START A TIMER IN THE PAST')
-      // you can't start a new timer in the past
-      // this.resetTimer(group) // not needed: see condition
+      // NEW timer set in the past
+      this.timerBroadcast(socket, group, 0, true)
     } else {
-      this.resetTimer(group)
-      // check status of current timer nerdily
-      // in half the time it's set for
-      let halfTime = Math.floor(time - Date.now()) / 2
-
-      let iD = setTimeout(() => {
-        this.timerTimeOutCallback(group)
-      }, halfTime)
-      const nextTimer = {
-        time,
-        timeOutObject: iD,
-      }
-      this.groups[group].timer = nextTimer
+      // time could be pushed back into the past.
+      this.timerBroadcast(socket, group, time, false)
+      this.setTimer(group, time)
+      this.runTimer(group)
     }
   }
 
@@ -204,7 +210,11 @@ export class Outlets {
     this.io.emit(this.channel, returnData)
   }
 
-  private broadcastSwitch(group: string, mode: boolean, socket: any): void {
+  private broadcastSwitch(
+    group: string,
+    mode: boolean,
+    socket: socketio.Socket
+  ): void {
     console.log(`broadcastSwitch group: ${group} mode: ${mode}`)
     // broadcasting goes to all OTHER sockets ONLY
     const returnData: SocketData = {
@@ -216,23 +226,23 @@ export class Outlets {
     socket.broadcast.emit(this.channel, returnData)
   }
 
-  private switchRequestWithBroadcast(
+  private switchAndBroadcastRequest(
     group: string,
     mode: boolean,
-    socket: any
+    socket: socketio.Socket
   ): void {
-    console.log(`switchRequestWithBroadcast group: ${group} mode: ${mode}`)
+    console.log(`switchAndBroadcastRequest group: ${group} mode: ${mode}`)
     this.broadcastSwitch(group, mode, socket)
     this.switch(group, mode)
   }
 
   public cancelTimerRequest(group: string): void {
-    // cancelTimerRequest VS resetTimer (see notes there)
+    // cancelTimerRequest VS setTimer (see notes there)
     // cancelTimerRequest:
-    //   calls resetTimer
+    //   calls setTimer
     //   emits the cancelled timer to all sockets
     console.log(`cancelTimerRequest group: ${group}`)
-    this.resetTimer(group)
+    this.setTimer(group, 0)
     this.emitCancelTimer(group)
   }
 
