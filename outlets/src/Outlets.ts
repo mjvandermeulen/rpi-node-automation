@@ -55,7 +55,7 @@ export class Outlets {
     this.groups
     this.io.sockets.on('connection', (socket: socketio.Socket) => {
       socket.on(this.channel, (socketData: SocketData) => {
-        // console.log(`socket.on JSON socket.data: ${JSON.stringify(socketData)}`)
+        console.log(`socket.on JSON socket.data: ${JSON.stringify(socketData)}`)
         if (socketData.sync) {
           // light sync requested
           const returnData: SocketData = {
