@@ -21,7 +21,7 @@
     "koa-static": "^5.0.0",
     "onoff": "^5.0.0",
     "python-shell": "^1.0.8",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.5.0"
   },
   "devDependencies": {
     "@types/koa": "^2.0.52",
